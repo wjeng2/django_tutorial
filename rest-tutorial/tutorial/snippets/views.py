@@ -36,11 +36,14 @@ from snippets.permissions import IsOwnerOrReadOnly
 
 #tutorial 5
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
+# from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import renderers
 
-
+#tutorial 6
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 """
 -----------------------------------
@@ -197,49 +200,93 @@ tutorial 3 generic class-based views
 --------------------------------------
 """
 
-class SnippetList(generics.ListCreateAPIView):
-	queryset = Snippet.objects.all()
-	serializer_class = SnippetSerializer
-	permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-	#tutorial 4 override perform create to include user
-	def perform_create(self, serializer):
-		serializer.save(owner=self.request.user)
+# class SnippetList(generics.ListCreateAPIView):
+# 	queryset = Snippet.objects.all()
+# 	serializer_class = SnippetSerializer
+# 	permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+# 	#tutorial 4 override perform create to include user
+# 	def perform_create(self, serializer):
+# 		serializer.save(owner=self.request.user)
 
-class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
-	queryset = Snippet.objects.all()
-	serializer_class = SnippetSerializer
-	permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+# class SnippetDetail(generics.RetrieveUpdateDestroyAPIView):
+# 	queryset = Snippet.objects.all()
+# 	serializer_class = SnippetSerializer
+# 	permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
 """
 -----------------------------------
 tutorial 4 user read-only view
 -----------------------------------
 """
-class UserList(generics.ListAPIView):
-	queryset = User.objects.all()
-	serializer_class = UserSerializer
+# class UserList(generics.ListAPIView):
+# 	queryset = User.objects.all()
+# 	serializer_class = UserSerializer
 
-class UserDetail(generics.RetrieveAPIView):
-	queryset = User.objects.all()
-	serializer_class = UserSerializer
+# class UserDetail(generics.RetrieveAPIView):
+# 	queryset = User.objects.all()
+# 	serializer_class = UserSerializer
+
 
 """
 ------------------------------
 #tutorial 5
 ------------------------------
 """
-@api_view(['GET'])
-def api_root(request, format=None):
-	#reverse = return fully-qualified URL?
-	return Response({
-		'users': reverse('user-list', request=request, format=format),
-		'snippets': reverse('snippet-list', request=request, format=format)
-		})
 
-class SnippetHighlight(generics.GenericAPIView):
+#handled by router
+
+# @api_view(['GET'])
+# def api_root(request, format=None):
+# 	#reverse = return fully-qualified URL?
+# 	return Response({
+# 		'users': reverse('user-list', request=request, format=format),
+# 		'snippets': reverse('snippet-list', request=request, format=format)
+# 		})
+
+# class SnippetHighlight(generics.GenericAPIView):
+# 	queryset = Snippet.objects.all()
+# 	renderer_classes = [renderers.StaticHTMLRenderer]
+
+# 	def get(self, request, *args, **kwargs):
+# 		snippet = self.get_object()
+# 		return Response(snippet.highlighted)
+
+
+"""
+-----------------------------------
+tutorial 6 user view sets
+-----------------------------------
+"""
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
+	"""
+	generate list and detail
+	"""
+	queryset = User.objects.all()
+	serializer_class = UserSerializer
+
+
+"""
+-----------------------------------
+tutorial 6 snippet view set
+-----------------------------------
+"""
+
+class SnippetViewSet(viewsets.ModelViewSet):
+	"""
+	Automatically provide list, create, retrieve, update, and destroy
+
+	Additionally provide extra 'highlight' action
+	"""
+
 	queryset = Snippet.objects.all()
-	renderer_classes = [renderers.StaticHTMLRenderer]
+	serializer_class = SnippetSerializer
+	permission_classes = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
-	def get(self, request, *args, **kwargs):
+	#default react to GET /  need methods argument to respond to POST
+	@action (detail=True, renderer_classes=[renderers.StaticHTMLRenderer])
+	def highlight(self, request, *args, **kwargs):
 		snippet = self.get_object()
 		return Response(snippet.highlighted)
+
+	def perform_create(self, serializer):
+		serializer.save(owner.self.request.user)
